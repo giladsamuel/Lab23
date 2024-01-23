@@ -1,3 +1,8 @@
+/**
+* TODO - handle line/lines printing
+*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +33,7 @@ int main() {
 
     printf("Enter the name of the file to index: ");
     scanf("%s", filename);
-    printf("You entered: %s\n", filename);
+    printf("You entered: %s\n\n", filename);
 
     file = fopen(filename, "r");
     if (file == NULL) {
@@ -61,10 +66,16 @@ int main() {
     qsort(wordIndex, wordCount, sizeof(WordIndex), compareWords);
 
     for (i = 0; i < wordCount; i++) {
-        printf("%s: ", wordIndex[i].word);
-        for (j = 0; j < wordIndex[i].count; j++) {
-            printf("%d ", wordIndex[i].lineNumbers[j]);
+        if (wordIndex[i].count == 1) {
+        printf("%-8s appears in line ", wordIndex[i].word);
+        } else {
+        printf("%-8s appears in lines ", wordIndex[i].word);
         }
+        for (j = 0; j < wordIndex[i].count - 1; j++) {
+            printf("%d,", wordIndex[i].lineNumbers[j]);
+        }
+        /* Handle the last element separately to avoid trailing comma */
+        printf("%d", wordIndex[i].lineNumbers[wordIndex[i].count - 1]);
         printf("\n");
     }
 
