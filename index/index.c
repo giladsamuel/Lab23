@@ -1,5 +1,5 @@
 /**
-* TODO - handle line/lines printing
+* TODO - 
 */
 
 
@@ -26,18 +26,34 @@ int main() {
     char line[100];
     WordIndex wordIndex[MAX_WORDS];
     int wordCount = 0;
+    char *token;
     FILE *file;
     int lineNumber;
     int i;
     int j;
 
     printf("Enter the name of the file to index: ");
-    scanf("%s", filename);
+    fgets(filename, sizeof(filename), stdin);
     printf("You entered: %s\n\n", filename);
+
+    /*  Remove trailing newline character */
+    filename[strlen(filename) - 1] = '\0';
+
+    token = strtok(filename, " ");
+    if (token == NULL) {
+        fprintf(stderr, "Error: No filename provided. Please provide a filename.\n");
+        return 1; 
+    } else {
+        token = strtok(NULL, " ");
+        if (token != NULL) {
+            fprintf(stderr, "Error: Multiple filenames provided. Please provide only one filename.\n");
+            return 1;
+        }
+    }
 
     file = fopen(filename, "r");
     if (file == NULL) {
-        printf("Failed to open the file.\n");
+        fprintf(stderr, "Failed to open the file.\n");
         return 1;
     }
 
