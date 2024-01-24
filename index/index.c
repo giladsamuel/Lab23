@@ -24,7 +24,9 @@ int compareWords(const void *a, const void *b) {
 int main() {
     char filename[100];
     char line[100];
-    WordIndex wordIndex[MAX_WORDS];
+    WordIndex *wordIndex;
+    int wordIndexSize = MAX_WORDS;
+    WordIndex *temp;
     int wordCount = 0;
     char *token;
     FILE *file;
@@ -56,6 +58,12 @@ int main() {
         fprintf(stderr, "Failed to open the file.\n");
         return 1;
     }
+    
+    wordIndex = malloc(MAX_WORDS * sizeof(WordIndex));
+    if (wordIndex == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for word index.\n");
+        return 1;
+    }
 
     lineNumber = 1;
     while (fgets(line, sizeof(line), file) != NULL) {
@@ -68,6 +76,16 @@ int main() {
                 }
             }
             if (i == wordCount) {
+                if (wordCount == wordIndexSize) {
+                    wordIndexSize *= 2;
+                    temp = realloc(wordIndex, wordIndexSize * sizeof(WordIndex));
+                    if (temp == NULL) {
+                        fprintf(stderr, "Error: Failed to reallocate memory for word index.\n");
+                        free(wordIndex);  /* Free the originally allocated memory */
+                        return 1;
+                    }
+                    wordIndex = temp;  /* Reassignment is safe because realloc was successful */
+                }
                 strcpy(wordIndex[wordCount].word, word);
                 wordIndex[wordCount].lineNumbers[wordIndex[wordCount].count++] = lineNumber;
                 wordCount++;
@@ -83,9 +101,9 @@ int main() {
 
     for (i = 0; i < wordCount; i++) {
         if (wordIndex[i].count == 1) {
-        printf("%-8s appears in line ", wordIndex[i].word);
+            printf("%-8s appears in line ", wordIndex[i].word);
         } else {
-        printf("%-8s appears in lines ", wordIndex[i].word);
+            printf("%-8s appears in lines ", wordIndex[i].word);
         }
         for (j = 0; j < wordIndex[i].count - 1; j++) {
             printf("%d,", wordIndex[i].lineNumbers[j]);
@@ -95,5 +113,6 @@ int main() {
         printf("\n");
     }
 
+    free(wordIndex);
     return 0;
 }
