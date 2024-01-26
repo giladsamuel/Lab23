@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WORDS_BUFFER 100
+#define WORDS_BUFFER 10
 #define LINES_BUFFER 10
 
 typedef struct {
@@ -61,12 +61,13 @@ int main() {
         return 1;
     }
     
-    wordIndexArray = malloc(WORDS_BUFFER * sizeof(WordIndex));
+    wordIndexArraySize = WORDS_BUFFER;
+    wordIndexArray = malloc(wordIndexArraySize * sizeof(WordIndex));
     if (wordIndexArray == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for word index array.\n");
         return 1;
     }
-    wordIndexArraySize = WORDS_BUFFER;
+    
     for (i = 0; i < wordIndexArraySize; i++) {
         initWordIndex(&wordIndexArray[i]);
     }
@@ -111,15 +112,15 @@ int main() {
                         initWordIndex(&wordIndexArray[i]);
                     }
                 }
-                strcpy(wordIndexArray[i].word, word); 
-                wordIndexArray[i].lineNumbersArray = malloc(LINES_BUFFER * sizeof(int));
+                strcpy(wordIndexArray[i].word, word);
+                wordIndexArray[i].lineNumbersSize = LINES_BUFFER;
+                wordIndexArray[i].lineNumbersArray = malloc(wordIndexArray[i].lineNumbersSize * sizeof(int));
                 if (wordIndexArray[i].lineNumbersArray == NULL) {
                     fprintf(stderr, "Error: Failed to allocate memory for line numbers.\n");
                     freeWordIndexArray(wordIndexArray, &wordIndexArraySize);  /* Free the originally allocated memory */
                     fclose(file);
                     return 1;
                 }
-                wordIndexArray[i].lineNumbersSize = LINES_BUFFER;
                 wordIndexArray[i].lineNumbersArray[0] = lineNumber;
                 wordIndexArray[i].lineNumbersCount++;
                 wordIndexCount++;
