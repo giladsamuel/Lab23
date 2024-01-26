@@ -7,29 +7,31 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_WORDS 1000
+#define WORDS_BUFFER 100
+#define LINES_BUFFER 10
 
 typedef struct {
     char word[100];
-    int lineNumbers[MAX_WORDS];
-    int count;
+    int *lineNumbersArray;
+    int lineNumbersSize;
+    int lineNumbersCount;
 } WordIndex;
 
-int compareWords(const void *a, const void *b) {
-    const WordIndex *wordIndexA = (const WordIndex *)a;
-    const WordIndex *wordIndexB = (const WordIndex *)b;
-    return strcmp(wordIndexA->word, wordIndexB->word);
-}
+void initWordIndex(WordIndex *WordIndex);
+void freeWordIndex(WordIndex *array);
+int compareWords(const void *a, const void *b);
+void freeWordIndexArray(WordIndex *array, int *arraySize);
+
 
 int main() {
     char filename[100];
-    char line[100];
-    WordIndex *wordIndex;
-    int wordIndexSize = MAX_WORDS;
-    WordIndex *temp;
-    int wordCount = 0;
-    char *token;
-    FILE *file;
+    char line[1000];
+    WordIndex *wordIndexArray = NULL;
+    int wordIndexArraySize = 0;
+    int wordIndexCount = 0;
+    void *temp = NULL;
+    char *token = NULL;
+    FILE *file = NULL;
     int lineNumber;
     int i;
     int j;
@@ -59,36 +61,68 @@ int main() {
         return 1;
     }
     
-    wordIndex = malloc(MAX_WORDS * sizeof(WordIndex));
-    if (wordIndex == NULL) {
-        fprintf(stderr, "Error: Failed to allocate memory for word index.\n");
+    wordIndexArray = malloc(WORDS_BUFFER * sizeof(WordIndex));
+    if (wordIndexArray == NULL) {
+        fprintf(stderr, "Error: Failed to allocate memory for word index array.\n");
         return 1;
+    }
+    wordIndexArraySize = WORDS_BUFFER;
+    for (i = 0; i < wordIndexArraySize; i++) {
+        initWordIndex(&wordIndexArray[i]);
     }
 
     lineNumber = 1;
     while (fgets(line, sizeof(line), file) != NULL) {
         char *word = strtok(line, " \t\n");
         while (word != NULL) {
-            for (i = 0; i < wordCount; i++) {
-                if (strcmp(wordIndex[i].word, word) == 0) {
-                    wordIndex[i].lineNumbers[wordIndex[i].count++] = lineNumber;
+            for (i = 0; i < wordIndexCount; i++) {
+                if (strcmp(wordIndexArray[i].word, word) == 0) {
+                    if (wordIndexArray[i].lineNumbersArray[wordIndexArray[i].lineNumbersCount - 1] == lineNumber) {
+                        break;  /* This word already appear earlier in this line */
+                    }
+                    if (wordIndexArray[i].lineNumbersCount == wordIndexArray[i].lineNumbersSize) {
+                        wordIndexArray[i].lineNumbersSize *= 2;
+                        temp = realloc(wordIndexArray[i].lineNumbersArray, wordIndexArray[i].lineNumbersSize * sizeof(int));
+                        if (temp == NULL) {
+                            fprintf(stderr, "Error: Failed to reallocate memory for line numbers array.\n");
+                            freeWordIndexArray(wordIndexArray, &wordIndexArraySize);
+                            fclose(file);
+                            return 1;
+                        }
+                        wordIndexArray[i].lineNumbersArray = temp;  /* Reassignment is safe because realloc was successful */
+                    }
+                    wordIndexArray[i].lineNumbersArray[wordIndexArray[i].lineNumbersCount] = lineNumber;
+                    wordIndexArray[i].lineNumbersCount++;
                     break;
                 }
             }
-            if (i == wordCount) {
-                if (wordCount == wordIndexSize) {
-                    wordIndexSize *= 2;
-                    temp = realloc(wordIndex, wordIndexSize * sizeof(WordIndex));
+            if (i == wordIndexCount) {
+                if (wordIndexCount == wordIndexArraySize) {
+                    wordIndexArraySize *= 2;
+                    temp = realloc(wordIndexArray, wordIndexArraySize * sizeof(WordIndex));
                     if (temp == NULL) {
-                        fprintf(stderr, "Error: Failed to reallocate memory for word index.\n");
-                        free(wordIndex);  /* Free the originally allocated memory */
+                        fprintf(stderr, "Error: Failed to reallocate memory for word index array.\n");
+                        freeWordIndexArray(wordIndexArray, &wordIndexArraySize);  /* Free the originally allocated memory */
+                        fclose(file);
                         return 1;
                     }
-                    wordIndex = temp;  /* Reassignment is safe because realloc was successful */
+                    wordIndexArray = temp;  /* Reassignment is safe because realloc was successful */
+                    for (i = wordIndexCount; i < wordIndexArraySize; i++) {
+                        initWordIndex(&wordIndexArray[i]);
+                    }
                 }
-                strcpy(wordIndex[wordCount].word, word);
-                wordIndex[wordCount].lineNumbers[wordIndex[wordCount].count++] = lineNumber;
-                wordCount++;
+                strcpy(wordIndexArray[i].word, word); 
+                wordIndexArray[i].lineNumbersArray = malloc(LINES_BUFFER * sizeof(int));
+                if (wordIndexArray[i].lineNumbersArray == NULL) {
+                    fprintf(stderr, "Error: Failed to allocate memory for line numbers.\n");
+                    freeWordIndexArray(wordIndexArray, &wordIndexArraySize);  /* Free the originally allocated memory */
+                    fclose(file);
+                    return 1;
+                }
+                wordIndexArray[i].lineNumbersSize = LINES_BUFFER;
+                wordIndexArray[i].lineNumbersArray[0] = lineNumber;
+                wordIndexArray[i].lineNumbersCount++;
+                wordIndexCount++;
             }
             word = strtok(NULL, " \t\n");
         }
@@ -97,22 +131,60 @@ int main() {
 
     fclose(file);
 
-    qsort(wordIndex, wordCount, sizeof(WordIndex), compareWords);
+    qsort(wordIndexArray, wordIndexCount, sizeof(WordIndex), compareWords);
 
-    for (i = 0; i < wordCount; i++) {
-        if (wordIndex[i].count == 1) {
-            printf("%-8s appears in line ", wordIndex[i].word);
+    for (i = 0; i < wordIndexCount; i++) {
+        if (wordIndexArray[i].lineNumbersCount== 1) {
+            printf("%-8s appears in line ", wordIndexArray[i].word);
         } else {
-            printf("%-8s appears in lines ", wordIndex[i].word);
+            printf("%-8s appears in lines ", wordIndexArray[i].word);
         }
-        for (j = 0; j < wordIndex[i].count - 1; j++) {
-            printf("%d,", wordIndex[i].lineNumbers[j]);
+        for (j = 0; j < wordIndexArray[i].lineNumbersCount - 1; j++) {
+            printf("%d,", wordIndexArray[i].lineNumbersArray[j]);
         }
         /* Handle the last element separately to avoid trailing comma */
-        printf("%d", wordIndex[i].lineNumbers[wordIndex[i].count - 1]);
+        printf("%d", wordIndexArray[i].lineNumbersArray[j]);
         printf("\n");
     }
 
-    free(wordIndex);
+    freeWordIndexArray(wordIndexArray, &wordIndexArraySize);
     return 0;
 }
+
+
+void initWordIndex(WordIndex *WordIndex) {
+    strcpy(WordIndex->word, "");  /* Initialize the word to an empty string */
+    WordIndex->lineNumbersArray = NULL;
+    WordIndex->lineNumbersSize = 0;
+    WordIndex->lineNumbersCount = 0;
+}
+
+
+void freeWordIndex(WordIndex *WordIndex) {
+    free(WordIndex->lineNumbersArray);
+    WordIndex->lineNumbersArray = NULL;
+    WordIndex->lineNumbersSize = 0;
+    WordIndex->lineNumbersCount = 0;
+}
+
+
+int compareWords(const void *a, const void *b) {
+    const WordIndex *wordIndexA = (const WordIndex *)a;
+    const WordIndex *wordIndexB = (const WordIndex *)b;
+    return strcmp(wordIndexA->word, wordIndexB->word);
+}
+
+
+void freeWordIndexArray(WordIndex *array, int *arraySize) {
+    int i;
+    for (i = 0; i < *arraySize; i++) {
+        freeWordIndex(&array[i]);
+    }
+    free(array);
+    array = NULL;
+    *arraySize = 0;
+}
+
+
+
+
