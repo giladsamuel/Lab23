@@ -5,7 +5,7 @@
  * The index program is responsible for creating and managing a word index for a file.
  * It allows users to select a file and make an index for its words, meaning printing the words
  * alphabetically each with the line numbers on which they appear.
- **/
+ */
 
 #include "index.h"
 
@@ -40,6 +40,11 @@ int main() {
             fprintf(stderr, "Error: Multiple filenames provided. Please provide only one filename.\n");
             return 1;
         }
+    }
+
+    if (access(filename, F_OK) == -1) {
+        fprintf(stderr, "Error: File does not exist.\n");
+        return 1;
     }
 
     file = fopen(filename, "r");
@@ -117,12 +122,6 @@ int main() {
                 temp = malloc(wordIndexArray[i].lineNumbersSize * sizeof(int));
                 if (temp == NULL) {
                     fprintf(stderr, "Error: Failed to allocate memory for line numbers.\n");
-                    printf("wordIndexArray[i].lineNumbersSize = %d\n", wordIndexArray[i].lineNumbersSize);
-                    printf("i = %d\n", i);
-                    printf("wordIndexArraySize = %d\n", wordIndexArraySize);
-                    printf("wordIndexCount = %d\n", wordIndexCount);
-                    printf("wordIndexArray[i].word = %s\n", wordIndexArray[i].word);
-                    printf("wordIndexArray[i].lineNumbersArray = %p\n", (void *)wordIndexArray[i].lineNumbersArray);
                     freeWordIndexArray(wordIndexArray, &wordIndexArraySize);  /* Free the originally allocated memory */
                     fclose(file);
                     return 1;
@@ -133,10 +132,8 @@ int main() {
                 wordIndexCount++;
             }
             word = strtok(NULL, " \t\n");
-            /*printf("wordIndexArray[i].word strtok= %s\n", wordIndexArray[i].word);*/
         }   
         lineNumber++;
-        /*printf("wordIndexArray[i].word linnumber i: %d, %s\n", i, wordIndexArray[i].word);*/
     }
 
     fclose(file);
@@ -153,10 +150,7 @@ int main() {
             printf("%d,", wordIndexArray[i].lineNumbersArray[j]);
         }
         /* Handle the last element separately to avoid trailing comma */
-        /*printf("i = %d, j= %d\n", i, j);*/
         printf("%d", wordIndexArray[i].lineNumbersArray[j]);
-        /*printf("wordIndexCount = %d\n", wordIndexCount);
-        printf("wordIndexArraySize = %d\n", wordIndexArraySize);*/
         printf("\n");
     }
 
