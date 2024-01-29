@@ -1,31 +1,18 @@
 /**
-* TODO - 
-*/
+ * @file index.c
+ * @brief This file contains the implementation of the index program.
+ *
+ * The index program is responsible for creating and managing a word index for a file.
+ * It allows users to select a file and make an index for its words, meaning printing the words
+ * alphabetically each with the line numbers on which they appear.
+ **/
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define WORDS_BUFFER 10
-#define LINES_BUFFER 10
-
-typedef struct {
-    char word[100];
-    int *lineNumbersArray;
-    int lineNumbersSize;
-    int lineNumbersCount;
-} WordIndex;
-
-void initWordIndex(WordIndex *WordIndex);
-void freeWordIndex(WordIndex *array);
-int compareWords(const void *a, const void *b);
-void freeWordIndexArray(WordIndex *array, int *arraySize);
+#include "index.h"
 
 
 int main() {
-    char filename[100];
-    char line[1000];
+    char filename[50];
+    char line[150];
     WordIndex *wordIndexArray = NULL;
     int wordIndexArraySize = 0;
     int wordIndexCount = 0;
@@ -65,6 +52,7 @@ int main() {
     wordIndexArray = malloc(wordIndexArraySize * sizeof(WordIndex));
     if (wordIndexArray == NULL) {
         fprintf(stderr, "Error: Failed to allocate memory for word index array.\n");
+        fclose(file);
         return 1;
     }
     
@@ -108,26 +96,47 @@ int main() {
                         return 1;
                     }
                     wordIndexArray = temp;  /* Reassignment is safe because realloc was successful */
-                    for (i = wordIndexCount; i < wordIndexArraySize; i++) {
-                        initWordIndex(&wordIndexArray[i]);
+                    for (j = wordIndexCount; j < wordIndexArraySize; j++) {
+                        initWordIndex(&wordIndexArray[j]);
                     }
                 }
-                strcpy(wordIndexArray[i].word, word);
-                wordIndexArray[i].lineNumbersSize = LINES_BUFFER;
-                wordIndexArray[i].lineNumbersArray = malloc(wordIndexArray[i].lineNumbersSize * sizeof(int));
-                if (wordIndexArray[i].lineNumbersArray == NULL) {
-                    fprintf(stderr, "Error: Failed to allocate memory for line numbers.\n");
+                temp = malloc((strlen(word) + 1) * sizeof(char));
+
+                if (temp == NULL) {
+                    fprintf(stderr, "Error: Failed to allocate memory for word.\n");
                     freeWordIndexArray(wordIndexArray, &wordIndexArraySize);  /* Free the originally allocated memory */
                     fclose(file);
                     return 1;
                 }
+                wordIndexArray[i].word = temp;  /* Reassignment is safe because malloc was successful */
+                strcpy(wordIndexArray[i].word, word);
+                /*printf("wordIndexArray[i].word = %s\n", wordIndexArray[i].word);*/
+
+
+                wordIndexArray[i].lineNumbersSize = LINES_BUFFER;
+                temp = malloc(wordIndexArray[i].lineNumbersSize * sizeof(int));
+                if (temp == NULL) {
+                    fprintf(stderr, "Error: Failed to allocate memory for line numbers.\n");
+                    printf("wordIndexArray[i].lineNumbersSize = %d\n", wordIndexArray[i].lineNumbersSize);
+                    printf("i = %d\n", i);
+                    printf("wordIndexArraySize = %d\n", wordIndexArraySize);
+                    printf("wordIndexCount = %d\n", wordIndexCount);
+                    printf("wordIndexArray[i].word = %s\n", wordIndexArray[i].word);
+                    printf("wordIndexArray[i].lineNumbersArray = %p\n", (void *)wordIndexArray[i].lineNumbersArray);
+                    freeWordIndexArray(wordIndexArray, &wordIndexArraySize);  /* Free the originally allocated memory */
+                    fclose(file);
+                    return 1;
+                }
+                wordIndexArray[i].lineNumbersArray = temp;
                 wordIndexArray[i].lineNumbersArray[0] = lineNumber;
                 wordIndexArray[i].lineNumbersCount++;
                 wordIndexCount++;
             }
             word = strtok(NULL, " \t\n");
-        }
+            /*printf("wordIndexArray[i].word strtok= %s\n", wordIndexArray[i].word);*/
+        }   
         lineNumber++;
+        /*printf("wordIndexArray[i].word linnumber i: %d, %s\n", i, wordIndexArray[i].word);*/
     }
 
     fclose(file);
@@ -135,7 +144,7 @@ int main() {
     qsort(wordIndexArray, wordIndexCount, sizeof(WordIndex), compareWords);
 
     for (i = 0; i < wordIndexCount; i++) {
-        if (wordIndexArray[i].lineNumbersCount== 1) {
+        if (wordIndexArray[i].lineNumbersCount == 1) {
             printf("%-8s appears in line ", wordIndexArray[i].word);
         } else {
             printf("%-8s appears in lines ", wordIndexArray[i].word);
@@ -144,7 +153,10 @@ int main() {
             printf("%d,", wordIndexArray[i].lineNumbersArray[j]);
         }
         /* Handle the last element separately to avoid trailing comma */
+        /*printf("i = %d, j= %d\n", i, j);*/
         printf("%d", wordIndexArray[i].lineNumbersArray[j]);
+        /*printf("wordIndexCount = %d\n", wordIndexCount);
+        printf("wordIndexArraySize = %d\n", wordIndexArraySize);*/
         printf("\n");
     }
 
@@ -153,19 +165,20 @@ int main() {
 }
 
 
-void initWordIndex(WordIndex *WordIndex) {
-    strcpy(WordIndex->word, "");  /* Initialize the word to an empty string */
-    WordIndex->lineNumbersArray = NULL;
-    WordIndex->lineNumbersSize = 0;
-    WordIndex->lineNumbersCount = 0;
+void initWordIndex(WordIndex *wordIndex) {
+    wordIndex->word = NULL;
+    wordIndex->lineNumbersArray = NULL;
+    wordIndex->lineNumbersSize = 0;
+    wordIndex->lineNumbersCount = 0;
 }
 
 
-void freeWordIndex(WordIndex *WordIndex) {
-    free(WordIndex->lineNumbersArray);
-    WordIndex->lineNumbersArray = NULL;
-    WordIndex->lineNumbersSize = 0;
-    WordIndex->lineNumbersCount = 0;
+void freeWordIndex(WordIndex *wordIndex) {
+    free(wordIndex->word);
+    free(wordIndex->lineNumbersArray);
+    wordIndex->lineNumbersArray = NULL;
+    wordIndex->lineNumbersSize = 0;
+    wordIndex->lineNumbersCount = 0;
 }
 
 
@@ -185,7 +198,3 @@ void freeWordIndexArray(WordIndex *array, int *arraySize) {
     array = NULL;
     *arraySize = 0;
 }
-
-
-
-
